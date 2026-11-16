@@ -1,0 +1,5 @@
+build
+v.exe
+glew32.dll
+glew32.lib
+.vscode
