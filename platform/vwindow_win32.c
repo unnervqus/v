@@ -328,3 +328,15 @@ void vWindowPollEvents(vWindow w) {
         DispatchMessageW(&msg);
     }
 }
+
+u32 vWindowGetWidth(vWindow w) {
+    RECT rect;
+    GetClientRect(w->handle, &rect);
+    return (u32)(rect.right - rect.left);
+}
+
+u32 vWindowGetHeight(vWindow w) {
+    RECT rect;
+    GetClientRect(w->handle, &rect);
+    return (u32)(rect.bottom - rect.top);
+}

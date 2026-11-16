@@ -25,10 +25,21 @@ static void* vRendererThread(void* arg) {
     v.renderer = vRendererCreate(v.window);
     vTimer timer = vTimerCreate(true);
     
+    vTexture texture = vTextureCreate(
+        "assets/textures/test.png"
+    );
+
     while(v.is_running) {
         u64 start_ms = vTimerGetMs(timer);
         vRendererBeginFrame(v.renderer);
 
+        vDrawTexture(
+            v.renderer,
+            texture,
+            (vVec2){ 100.0f, 100.0f },
+            (vVec2){ 256.0f, 256.0f }
+        );
+        
         vRendererEndFrame(v.renderer);
         
         u64 end_ms = vTimerGetMs(timer);
