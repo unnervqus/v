@@ -2,6 +2,10 @@
 
 #include "core/vtypes.h"
 
+// For loading
+typedef struct vTextureData* vTextureData;
+
+// For rendering
 typedef struct vTexture *vTexture;
 
 typedef enum vTextureFilter {
@@ -19,9 +23,10 @@ typedef struct vTextureSettings {
     vTextureWrap wrap;
 } vTextureSettings;
 
-vTexture vTextureCreate(const char* path);
+vTextureData vTextureLoad(const char* path);
+vTexture vTextureCreate(const vTextureData texture_data);
 vTexture vTextureCreateEx(
-    const char* path,
+    const vTextureData texture_data,
     vTextureSettings settings
 );
 

@@ -4,6 +4,8 @@
 
 typedef void (*vEventHandle)(const vEvent* event);
 
+void vEventQueueInit();
+
 void vEventQueuePublish(const vEvent ev);
 void vEventQueueDispatch();
 

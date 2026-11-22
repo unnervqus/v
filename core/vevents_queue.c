@@ -1,56 +1,32 @@
 #include "core/vevent_queue.h"
-
-#include <stdatomic.h>
-#include <stdbool.h>
+#include "core/vring_buffer.h"
+#include "core/vlogging.h"
+#include "core/threading/vmutex.h"
 
 #define V_EVENT_QUEUE_CAPACITY 1024
 #define V_EVENT_MAX_HANDLERS 16
 
 typedef struct vEventQueue {
-    vEvent events[V_EVENT_QUEUE_CAPACITY];
-
-    u32 head;
-    u32 tail;
-    u32 count;
+    vRingBuffer events;
 
     vEventHandle handlers[V_EVENT_TYPE_COUNT][V_EVENT_MAX_HANDLERS];
     u32 handler_count[V_EVENT_TYPE_COUNT];
 
-    atomic_flag lock;
+    vMutex mutex;
 } vEventQueue;
 
-static vEventQueue queue = {
-    .lock = ATOMIC_FLAG_INIT
-};
+static vEventQueue queue;
 
-static void vEventQueueLock() {
-    while (atomic_flag_test_and_set_explicit(
-        &queue.lock,
-        memory_order_acquire
-    )) {}
-}
-
-static void vEventQueueUnlock() {
-    atomic_flag_clear_explicit(
-        &queue.lock,
-        memory_order_release
-    );
+void vEventQueueInit() {
+    queue.events = vRingBufferCreate(sizeof(vEvent), V_EVENT_QUEUE_CAPACITY);
+    vMutexCreate(&queue.mutex);
+    vLog("[EVENT SYSTEM] Initialized (capacity=%u)\n", V_EVENT_QUEUE_CAPACITY);
 }
 
 void vEventQueuePublish(const vEvent ev) {
-    vEventQueueLock();
-
-    if (queue.count >= V_EVENT_QUEUE_CAPACITY) {
-        vEventQueueUnlock();
-        return;
-    }
-
-    queue.events[queue.tail] = ev;
-
-    queue.tail = (queue.tail + 1) % V_EVENT_QUEUE_CAPACITY;
-    queue.count++;
-
-    vEventQueueUnlock();
+    vMutexLock(&queue.mutex);
+    vRingBufferPush(queue.events, &ev);
+    vMutexUnlock(&queue.mutex);
 }
 
 void vEventQueueSubscribe(vEventType event_type, vEventHandle handler) {
@@ -62,7 +38,7 @@ void vEventQueueSubscribe(vEventType event_type, vEventHandle handler) {
         return;
     }
 
-    vEventQueueLock();
+    vMutexLock(&queue.mutex);
 
     u32 count = queue.handler_count[event_type];
 
@@ -71,47 +47,44 @@ void vEventQueueSubscribe(vEventType event_type, vEventHandle handler) {
         queue.handler_count[event_type]++;
     }
 
-    vEventQueueUnlock();
+    vLog("[EVENT SYSTEM] Subscribed %p on event %d\n", handler, event_type);
+
+    vMutexUnlock(&queue.mutex);
 }
 
 void vEventQueueDispatch() {
-    vEventQueueLock();
-    u32 events_to_dispatch = queue.count;
-    vEventQueueUnlock();
+    vMutexLock(&queue.mutex);
+    u32 events_to_dispatch = vRingBufferGetCount(queue.events);
+    vMutexUnlock(&queue.mutex);
+
+    if (events_to_dispatch > 0) {
+        vLog("[EVENT SYSTEM] Dispatching batch of %u event(s)\n", events_to_dispatch);
+    }
 
     for (u32 i = 0; i < events_to_dispatch; i++) {
-        vEvent ev;
-
+        vEvent *ev, _ev;
         vEventHandle handlers[V_EVENT_MAX_HANDLERS];
         u32 handler_count = 0;
 
-        vEventQueueLock();
+        vMutexLock(&queue.mutex);
 
-        if (queue.count == 0) {
-            vEventQueueUnlock();
-            break;
-        }
-
-        ev = queue.events[queue.head];
-
-        queue.head = (queue.head + 1) % V_EVENT_QUEUE_CAPACITY;
-        queue.count--;
-
+        ev = (vEvent*)vRingBufferPop(queue.events);
+        _ev = *ev;
+        vLog("[EVENT DISPATCH] Got new event. Type: %d. Address: %p\n", ev->type, ev);
         if (
-            ev.type >= 0 &&
-            ev.type < V_EVENT_TYPE_COUNT
+            _ev.type >= 0 &&
+            _ev.type < V_EVENT_TYPE_COUNT
         ) {
-            handler_count = queue.handler_count[ev.type];
-
+            handler_count = queue.handler_count[_ev.type];
             for (u32 j = 0; j < handler_count; j++) {
-                handlers[j] = queue.handlers[ev.type][j];
+                handlers[j] = queue.handlers[_ev.type][j];
             }
         }
 
-        vEventQueueUnlock();
+        vMutexUnlock(&queue.mutex);
 
         for (u32 j = 0; j < handler_count; j++) {
-            handlers[j](&ev);
+            handlers[j](&_ev);
         }
     }
 }

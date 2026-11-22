@@ -31,6 +31,7 @@ static void vOpenGLContextCleanup(vOpenGLContext gl) {
 }
 
 vOpenGLContext vOpenGLContextCreate(vWindow window) {
+    vLog("[OpenGL] Creating context for window %p\n", window);
     HWND hwnd = vWindowGetNative(window);
     HDC hdc = GetDC(hwnd);
 
@@ -82,7 +83,7 @@ vOpenGLContext vOpenGLContextCreate(vWindow window) {
     if (glewInit() != GLEW_OK) {
         wglMakeCurrent(NULL, NULL);
         wglDeleteContext(tempContext);
-        return NULL;
+        goto fail;
     }
 
     if (!WGLEW_ARB_create_context) {
@@ -138,10 +139,11 @@ vOpenGLContext vOpenGLContextCreate(vWindow window) {
 
 
     vOpenGLContext gl = vMalloc(sizeof(struct vOpenGLContext));
-        gl->hctx = tempContext;
+        gl->hctx = hctx;
         gl->hwnd = hwnd;
         gl->hdc = hdc;
 
+    vLog("[OpenGL] Context ready: %p\n", gl);
     return gl;
 
 fail:

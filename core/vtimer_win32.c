@@ -1,5 +1,6 @@
 #include "core/vtimer.h"
 #include "core/vmemory.h"
+#include "core/vlogging.h"
 
 #define UNICODE
 #define WIN32_LEAN_AND_MEAN
@@ -14,17 +15,28 @@ struct vTimer {
 
 vTimer vTimerCreate(bool start) {
     vTimer timer = vMalloc(sizeof(struct vTimer));
+    if (!timer) {
+        vLog("[TIMER] Create failed: allocation failed\n");
+        return NULL;
+    }
+
+    timer->started = false;
     QueryPerformanceFrequency(&timer->freq);
     if(start) {
         vTimerStart(timer);
     }
 
+    vLog("[TIMER] Created %p (started=%s)\n", timer, start ? "true" : "false");
     return timer;
 }
 
 void vTimerStart(vTimer timer) {
+    if (!timer) return;
+
     if(!timer->started) {
         QueryPerformanceCounter(&timer->start);
+        timer->started = true;
+        vLog("[TIMER] Started %p\n", timer);
     }
 }
 

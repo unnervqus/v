@@ -2,11 +2,15 @@
 #include "core/vmemory.h"
 #include "core/vevents.h"
 #include "core/vevent_queue.h"
+#include "core/vstring.h"
+#include "core/vlogging.h"
 
 #define WIN32_LEAN_AND_MEAN
 #define UNICODE
 #include <windows.h>
 #include <windowsx.h>
+
+#define V_WINDOW_NAME_MAX_LEN 256
 
 struct vWindow {
     u32 h;
@@ -16,6 +20,7 @@ struct vWindow {
 };
 
 static LPCWSTR v_class = L"VCLASS";
+static wchar_t v_window_name[V_WINDOW_NAME_MAX_LEN];
 
 static void vHandleMouseButton(HWND hwnd, vEventType type, bool pressed, LPARAM lp) {
     vEvent ev = {
@@ -28,19 +33,16 @@ static void vHandleMouseButton(HWND hwnd, vEventType type, bool pressed, LPARAM 
         case V_EVENT_MOUSE_LBUTTON:
             ev.as.mouse_lbutton.pressed = pressed;
             ev.as.mouse_lbutton.released = !pressed;
-            ev.as.mouse_lbutton.hold = pressed;
             break;
 
         case V_EVENT_MOUSE_RBUTTON:
             ev.as.mouse_rbutton.pressed = pressed;
             ev.as.mouse_rbutton.released = !pressed;
-            ev.as.mouse_rbutton.hold = pressed;
             break;
 
         case V_EVENT_MOUSE_MBUTTON:
             ev.as.mouse_mbutton.pressed = pressed;
             ev.as.mouse_mbutton.released = !pressed;
-            ev.as.mouse_mbutton.hold = pressed;
             break;
 
         default:
@@ -254,7 +256,8 @@ static LRESULT CALLBACK vWndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
-vWindow vWindowCreate(const char* title, u32 w, u32 h) {
+vWindow vWindowCreate(vString title, u32 w, u32 h) {
+    vLog("[WINDOW] Creating window (%ux%u)\n", w, h);
     HINSTANCE h_instance = GetModuleHandleW(NULL);
 
     WNDCLASSW wc;
@@ -271,6 +274,7 @@ vWindow vWindowCreate(const char* title, u32 w, u32 h) {
     wc.lpfnWndProc = vWndProc;
 
     if(!RegisterClassW(&wc)) {
+        vLog("[WINDOW] RegisterClassW failed (error=%lu)\n", (unsigned long)GetLastError());
         return NULL;
     }
 
@@ -283,9 +287,15 @@ vWindow vWindowCreate(const char* title, u32 w, u32 h) {
 
     AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
 
+    if(vStringGetSize(title) > V_WINDOW_NAME_MAX_LEN) {
+        vLog("[WINDOW] Window title is too long. Length: %u, Maximum: %d", vStringGetSize(title), V_WINDOW_NAME_MAX_LEN);
+    }
+
+    vStringGetDataW(title, v_window_name, V_WINDOW_NAME_MAX_LEN);
+
     HWND hwnd = CreateWindowW(
         v_class, 
-        L"V", 
+        v_window_name,
         WS_OVERLAPPEDWINDOW, 
         CW_USEDEFAULT, CW_USEDEFAULT, 
         rect.right - rect.left, 
@@ -296,6 +306,7 @@ vWindow vWindowCreate(const char* title, u32 w, u32 h) {
     );
 
     if(!hwnd) {
+        vLog("[WINDOW] CreateWindowW failed (error=%lu)\n", (unsigned long)GetLastError());
         UnregisterClassW(v_class, h_instance);
         return NULL;
     }
@@ -309,10 +320,13 @@ vWindow vWindowCreate(const char* title, u32 w, u32 h) {
     window->h = h;
     window->title = "TEST_TITLE";
 
+    vLog("[WINDOW] Created handle=%p (%ux%u)\n", hwnd, w, h);
     return window;
 }
 
 void vWindowDestroy(vWindow w) {
+    if (!w) return;
+    vLog("[WINDOW] Destroying handle=%p\n", w->handle);
     DestroyWindow(w->handle);
     vFree(w);
 }
@@ -321,7 +335,7 @@ void* vWindowGetNative(vWindow w) {
     return w->handle;
 }
 
-void vWindowPollEvents(vWindow w) {
+void vWindowPollEvents() {
     MSG msg;
     while(PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
         TranslateMessage(&msg);

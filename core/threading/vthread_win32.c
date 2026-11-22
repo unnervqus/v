@@ -1,5 +1,6 @@
-#include "core/vthread.h"
+#include "core/threading/vthread.h"
 #include "core/vmemory.h"
+#include "core/vlogging.h"
 
 #include <stdlib.h>
 
@@ -27,9 +28,16 @@ static DWORD WINAPI vThreadEntry(LPVOID param) {
 }
 
 vThread vThreadCreate(vThreadFn thread_fn, void* arg) {
-    if (!thread_fn) return NULL;
+    if (!thread_fn) {
+        vLog("[THREAD] Create rejected: callback is null\n");
+        return NULL;
+    }
 
     vThread thread = vMalloc(sizeof(*thread));
+    if (!thread) {
+        vLog("[THREAD] Create failed: allocation failed\n");
+        return NULL;
+    }
 
     thread->fn = thread_fn;
     thread->arg = arg;
@@ -37,11 +45,15 @@ vThread vThreadCreate(vThreadFn thread_fn, void* arg) {
     thread->started = false;
     thread->handle = NULL;
 
+    vLog("[THREAD] Created wrapper %p\n", thread);
     return thread;
 }
 
 void vThreadStart(vThread thread) {
-    if(!thread || thread->handle || thread->started) return;
+    if(!thread || thread->handle || thread->started) {
+        vLog("[THREAD] Start skipped: invalid or already started thread %p\n", thread);
+        return;
+    }
 
     thread->handle = CreateThread(
         NULL, 0,
@@ -51,11 +63,13 @@ void vThreadStart(vThread thread) {
     );
 
     if (!thread->handle) {
+        vLog("[THREAD] Start failed for %p\n", thread);
         vFree(thread);
         return;
     }
 
     thread->started = true;
+    vLog("[THREAD] Started id=%lu handle=%p\n", (unsigned long)thread->id, thread->handle);
 }
 
 void vThreadDestroy(vThread thread) {
@@ -71,9 +85,15 @@ void vThreadDestroy(vThread thread) {
 void vThreadJoin(vThread thread) {
     if (!thread || !thread->started || thread->joined) return;
 
+    vLog("[THREAD] Waiting for id=%lu\n", (unsigned long)thread->id);
     DWORD result = WaitForSingleObject(thread->handle, INFINITE);
 
-    if (result == WAIT_OBJECT_0) thread->joined = true;
+    if (result == WAIT_OBJECT_0) {
+        thread->joined = true;
+        vLog("[THREAD] Joined id=%lu\n", (unsigned long)thread->id);
+    } else {
+        vLog("[THREAD] Join wait failed id=%lu result=%lu\n", (unsigned long)thread->id, (unsigned long)result);
+    }
 }
 
 bool vThreadIsFinished(vThread thread) {
@@ -85,4 +105,8 @@ bool vThreadIsFinished(vThread thread) {
 
 void vThreadSleep(u64 ms) {
     Sleep(ms);
+}
+
+u64 vThreadGetCurrentId() {
+    return (u64)GetCurrentThreadId();
 }

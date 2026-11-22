@@ -9,16 +9,18 @@ project(v
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # --------------------------------------------------
 # Sources
 # --------------------------------------------------
  
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/core/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ui/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/graphics/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/graphics/context/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/platform/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/math/*.c"
 )
 
 add_executable(v
@@ -82,8 +84,7 @@ endif()
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
     target_compile_options(v PRIVATE
-        -Wall
-        -Wextra
+        -g
         -Wpedantic
     )
 endif()

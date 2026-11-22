@@ -79,8 +79,12 @@ vShader vShaderCreate(
     const char* vertex_path,
     const char* fragment_path
 ) {
-    if (!vertex_path || !fragment_path)
+    if (!vertex_path || !fragment_path) {
+        vLog("[SHADER] Create failed: source path is null\n");
         return NULL;
+    }
+
+    vLog("[SHADER] Creating program (vertex='%s', fragment='%s')\n", vertex_path, fragment_path);
 
     char* vertex_source = vShaderLoadSource(vertex_path);
     char* fragment_source = vShaderLoadSource(fragment_path);
@@ -146,6 +150,7 @@ vShader vShaderCreate(
     }
 
     shader->id = program;
+    vLog("[SHADER] Program ready (id=%u)\n", program);
     return shader;
 }
 

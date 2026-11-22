@@ -1,19 +1,21 @@
 #pragma once
 
+#include "core/vtypes.h"
+
 typedef struct vVec2 {
-    float x;
-    float y;
+    f32 x, y;
 } vVec2;
 
 typedef struct vVec3 {
-    float x;
-    float y;
-    float z;
+    f32 x, y, z;
 } vVec3;
 
 typedef struct vVec4 {
-    float x;
-    float y;
-    float z;
-    float w;
+    f32 x, y, z, w;
 } vVec4;
+
+typedef struct vRectF32 {
+    f32 z, y, w, h;
+} vRectF32;
+
+vVec2 vVec2Multiply(vVec2 a, vVec2 b);

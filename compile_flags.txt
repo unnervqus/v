@@ -1,0 +1,4 @@
+-std=c23
+--target=x86_64-w64-windows-gnu
+-isystem
+C:/msys64/clang64/include

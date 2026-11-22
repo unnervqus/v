@@ -1,9 +1,21 @@
 #pragma once
 
 #include "core/vtypes.h"
+#include "core/vevents.h"
+#include "core/vstring.h"
 
-void vInit(const char* title, u32 w, u32 h);
+#include "graphics/vrender_api.h"
 
-void vRun();
+void vInit(vString title, u32 w, u32 h);
+
+void vRun(
+    void (*application_init)(), 
+    void (*application_run)()
+);
 
 void vShutdown();
+bool vIsRunning();
+vRenderAPI* vGetRenderAPI();
+
+void vAddEventListener(vEventType type, void (*callback)(const vEvent*));
+void vRemoveEventListener(vEventType type, void (*callback)(const vEvent*));

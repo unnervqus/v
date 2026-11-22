@@ -5,6 +5,8 @@
 typedef enum vEventType: int {
     V_EVENT_NONE = -1,
 
+    V_EVENT_ENGINE_TICK,
+
     V_EVENT_MOUSE_RBUTTON,
     V_EVENT_MOUSE_LBUTTON,
     V_EVENT_MOUSE_MBUTTON,
@@ -31,19 +33,16 @@ typedef struct vEvent {
         struct {
             bool pressed;
             bool released;
-            bool hold;
         } mouse_rbutton;
 
         struct {
             bool pressed;
             bool released;
-            bool hold;
         } mouse_lbutton;
 
         struct {
             bool pressed;
             bool released;
-            bool hold;
         } mouse_mbutton;
 
         struct {

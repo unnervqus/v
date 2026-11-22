@@ -11,3 +11,4 @@ void vThreadStart(vThread);
 void vThreadJoin(vThread);
 bool vThreadIsFinished(vThread);
 void vThreadSleep(u64 ms);
+u64 vThreadGetCurrentId();

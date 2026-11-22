@@ -1,0 +1,36 @@
+2) Add utils functions
+    - Check if point inside of a rect
+    - Check if two rects intersects
+
+3) UI API
+    - Buttons
+    - Panels
+
+4) Light animation system
+    - Animation frames array
+    - Animation frame duration
+
+5) Light audio system
+    - Load audio
+    - Control volume
+    - Stop/restart/play
+    - Cycle bg music
+    - Play sound on actions
+
+6) Engine updates at constant speed 
+    - 20-50 ticks per second
+    - Animation timer
+    - dt on vEngineUpdate()
+    - ability to pause game or speed it up
+
+7) Cache mechanism for
+    - Textures
+    - Fonts
+    - Uniform variables (OpenGL)
+    - some calculation
+
+8) Correct vShutdown()
+    - Release textures
+    - Release fonts
+    - Release Shaders
+    - Destroy Context - Renderer - Window - Engine and other modules

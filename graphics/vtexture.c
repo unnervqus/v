@@ -7,6 +7,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+struct vTextureData {
+    i32 width;
+    i32 height;
+    u8* pixels;
+};
+
 struct vTexture {
     GLuint id;
     u32 width;
@@ -39,21 +45,13 @@ static GLint vTextureGetGLWrap(vTextureWrap wrap) {
     }
 }
 
-vTexture vTextureCreate(const char* path) {
-    vTextureSettings settings = {
-        .filter = V_TEXTURE_FILTER_NEAREST,
-        .wrap = V_TEXTURE_WRAP_CLAMP
-    };
-
-    return vTextureCreateEx(path, settings);
-}
-
-vTexture vTextureCreateEx(
-    const char* path,
-    vTextureSettings settings
-) {
-    if (!path)
+vTextureData vTextureLoad(const char* path) {
+    if (!path) {
+        vLog("[TEXTURE] Load failed: path is null\n");
         return NULL;
+    }
+
+    vLog("[TEXTURE] Loading '%s'\n", path);
 
     int width = 0;
     int height = 0;
@@ -76,10 +74,39 @@ vTexture vTextureCreateEx(
         return NULL;
     }
 
+    vTextureData texture_data = vMalloc(sizeof(struct vTextureData));
+
+    texture_data->pixels = (u8*)pixels;
+    texture_data->width = (i32)width;
+    texture_data->height = (i32)height;
+
+    vLog("[TEXTURE] Loaded '%s' (%dx%d, %d channel(s))\n", path, width, height, channels);
+    return texture_data;
+}
+
+vTexture vTextureCreate(const vTextureData texture_data) {
+    vTextureSettings settings = {
+        .filter = V_TEXTURE_FILTER_NEAREST,
+        .wrap = V_TEXTURE_WRAP_CLAMP
+    };
+
+    return vTextureCreateEx(texture_data, settings);
+}
+
+vTexture vTextureCreateEx(
+    const vTextureData texture_data,
+    vTextureSettings settings
+) {
+    if (!texture_data) {
+        vLog("[TEXTURE] Create failed: image data is null\n");
+        return NULL;
+    }
+
     vTexture texture = vMalloc(sizeof(*texture));
 
     if (!texture) {
-        stbi_image_free(pixels);
+        vLog("[TEXTURE] Create failed: allocation failed\n");
+        stbi_image_free(texture_data->pixels);
         return NULL;
     }
 
@@ -114,21 +141,22 @@ vTexture vTextureCreateEx(
         GL_TEXTURE_2D,
         0,
         GL_RGBA8,
-        width,
-        height,
+        texture_data->width,
+        texture_data->height,
         0,
         GL_RGBA,
         GL_UNSIGNED_BYTE,
-        pixels
+        texture_data->pixels
     );
 
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    stbi_image_free(pixels);
+    texture->width = (u32)texture_data->width;
+    texture->height = (u32)texture_data->height;
 
-    texture->width = (u32)width;
-    texture->height = (u32)height;
+    stbi_image_free(texture_data->pixels);
 
+    vLog("[TEXTURE] Created OpenGL texture id=%u (%ux%u)\n", texture->id, texture->width, texture->height);
     return texture;
 }
 
