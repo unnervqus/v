@@ -2,7 +2,6 @@
 
 #include "core/varray.h"
 #include "core/vmemory.h"
-#include "core/vlogging.h"
 #include "vtypes.h"
 
 struct vRingBuffer {
@@ -36,9 +35,6 @@ void vRingBufferPush(vRingBuffer rb, const void* item) {
         vArraySet(rb->items, rb->head, item);
         rb->count++;
         rb->head = (rb->head + 1) % rb->capacity;
-        // vLog(
-        //     "[RING BUFFER] Pushed item in ring buffer (%p), count: %llu, head: %llu\n",
-        //     rb, rb->count, rb->head); 
     }
 }
 
@@ -49,9 +45,6 @@ void* vRingBufferPop(vRingBuffer rb) {
     void* item = vArrayGet(rb->items, rb->tail);
     rb->tail = (rb->tail + 1) % rb->capacity;
     rb->count--;
-    // vLog(
-    //     "[RING BUFFER] Extracted item from ring buffer (%p), count: %llu, tail: %llu\n",
-    //     rb, rb->count, rb->tail);        
     return item;
 }
 

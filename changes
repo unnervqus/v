@@ -1,0 +1,5 @@
+v 0.2.1
+    - Added vRemoveListener function for application level
+    - Now application cannot subscribe multiple time one handler on same event type
+    - vRendererDrawUI:
+        - Moved UI drawing logic from v.c to vrenderer.c

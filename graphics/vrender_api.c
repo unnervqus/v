@@ -4,7 +4,6 @@
 #include "graphics/vrender_api.h"
 #include "graphics/vrenderer.h"
 #include "core/vring_buffer.h"
-#include "core/vlogging.h"
 #include "core/vmemory.h"
 
 typedef struct vRenderData {
@@ -62,20 +61,12 @@ void vRCMDCreateTexture(vTexture *texture_out, vTextureData texture_data) {
 }
 
 static void vRCMDExecute() {
-    vLog(
-        "[RENDER API] Preparing rcmd #%u\n", 
-        v_render.data->rcmd_buf[v_render.data->active_cmd_buf]->id
-    );
     u32 submitted = v_render.data->active_cmd_buf;
     
     vSemaphorePost(v_render.data->rcmd_buf[submitted]->commands_executing);
 
     v_render.data->active_cmd_buf = (submitted + 1) % 2;
     
-    vLog(
-        "[RENDER API] Waiting for rcmd #%u\n", 
-        v_render.data->rcmd_buf[v_render.data->active_cmd_buf]->id
-    );
     vSemaphoreWait(v_render.data->rcmd_buf[v_render.data->active_cmd_buf]->commands_available);
 }
 
@@ -127,7 +118,6 @@ void vRenderAPIInit(vRenderer renderer) {
     // render->set_scissor = vRCMDSetScissors;
     // render->set_viewport = vRCMDSetViewport;
     v_render.is_ready = true;
-    vLog("[RENDERER THREAD] Render API initialized\n");
 }
 
 vRenderCommandBuffer* vRenderAPIGetCommandBuffer(u32 index) {

@@ -11,6 +11,8 @@
 #include "vrenderer.h"
 
 #include <GL/glew.h>
+#include <core/varray.h>
+#include <ui/vui_element.h>
 
 struct vRenderer {
     GLuint vao;
@@ -59,8 +61,6 @@ vRenderer vRendererCreate(vWindow window) {
         vLog("[RENDERER] Create failed: allocation failed\n");
         return NULL;
     }
-
-    vLog("[RENDERER] Creating renderer for window %p\n", window);
 
     renderer->gl = vOpenGLContextCreate(window);
     renderer->width = vWindowGetWidth(window);
@@ -168,7 +168,6 @@ vRenderer vRendererCreate(vWindow window) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    vLog("[RENDERER] Ready (%ux%u)\n", renderer->width, renderer->height);
     return renderer;
 }
 
@@ -213,13 +212,9 @@ void vRendererExecuteCommands(vRenderer renderer, vRenderCommandBuffer* rcmd_buf
         return;
     }
 
-    vLog("[RENDERER] Waiting for avaiable rcmd#%u\n", rcmd_buf->id);
     vSemaphoreWait(rcmd_buf->commands_executing);
 
     u32 commands_to_execute = vRingBufferGetCount(rcmd_buf->buffer);
-    if (commands_to_execute > 0) {
-        // vLog("[RENDERER] Executing %u queued command(s)\n", commands_to_execute);
-    }
     
     for (u32 i = 0; i < commands_to_execute; i++) {
         vRenderCommand* rcmd = vRenderCommandBufferPop(rcmd_buf);
@@ -247,7 +242,6 @@ void vRendererExecuteCommands(vRenderer renderer, vRenderCommandBuffer* rcmd_buf
         }
     }
 
-    vLog("[RENDERER] Releasing rcmd#%u as avaiable\n", rcmd_buf->id);
     vSemaphorePost(rcmd_buf->commands_available);
 }
 
@@ -355,4 +349,36 @@ void vRendererClearScreen(vRenderer renderer, vColor color) {
     _CRT_UNUSED(renderer); 
     glClearColor(color.r, color.g, color.b, color.a);
     glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void vRendererDrawUI(vRenderer renderer, vArray elements) {
+    u32 element_count = vArrayGetSize(elements);
+
+    for(u32 i = 0; i < element_count; ++i) {
+        vTexture texture = NULL;
+        // TODO: Render should not know what vUIELement is
+        vUIElement *element = *(vUIElement**)vArrayGet(elements, i);
+        
+        if(element->is_visible) {
+            if(element->use_texture) {
+                if(element->is_pressed && element->pressed_texture) 
+                texture = element->pressed_texture;
+                else if(element->is_hovered && element->hover_texture)
+                texture = element->hover_texture;
+                else if(element->normal_texture)
+                texture = element->normal_texture;
+            } else {
+                // Draw with standard style
+            }
+        }
+        if(texture) {
+            vRendererDrawTexture(
+                renderer,
+                texture,
+                (vVec2){ (f32)element->x, (f32)element->y },
+                (vVec2){ (f32)element->width, (f32)element->height }
+            );
+        }
+    }
+
 }

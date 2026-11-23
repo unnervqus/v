@@ -51,6 +51,7 @@ typedef struct vEvent {
             bool shift;
             bool alt;
             bool ctrl;
+            bool is_special;
         } key_pressed;
 
         struct {

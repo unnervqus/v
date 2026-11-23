@@ -34,3 +34,16 @@
     - Release fonts
     - Release Shaders
     - Destroy Context - Renderer - Window - Engine and other modules
+
+
+
+TODO (refactoring):
+    1) Move RenderThread from v.c to vrenderer.c
+    2) Move MainThread from v.c to vrun.c
+    3) Implement vRenderDrawUI() for UI elements
+    4) Add render functionality:
+        - Draw text
+        - Draw primitives
+    5) Upgrade logger system to dynamicaly (or via args) turn on/off logging for subsystems and components
+    6) Refactor vrender_api.h so application-scope doesn't see thing it's don't need
+    7) Make vtexture-storage system, so app can toggle textures, which were already loaded

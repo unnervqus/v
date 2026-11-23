@@ -43,11 +43,9 @@ vTextureData texture_data1;
 vTextureData texture_data2;
 
 static void* vRendererThread(void* arg) {
-    vLog("[RENDERER THREAD] Starting renderer initialization\n");
     v.renderer = vRendererCreate(v.window);
 
     vRenderAPIInit(v.renderer);
-    vLog("[RENDERER THREAD] Render API ready\n");
     v.application_init();
 
     vTimer render_timer = vTimerCreate(true);
@@ -56,7 +54,6 @@ static void* vRendererThread(void* arg) {
 
     vTexture texture1 = vTextureCreate(texture_data1);
     vTexture texture2 = vTextureCreate(texture_data2);
-    vLog("[RENDERER THREAD] Startup textures created: pressed=%p hover=%p\n", texture1, texture2);
     
     vUIElementSetTexture(button, V_UIE_TEXTURE_PRESSED, texture1);
     vUIElementSetTexture(button, V_UIE_TEXTURE_HOVER, texture2);
@@ -64,7 +61,6 @@ static void* vRendererThread(void* arg) {
 
     while(atomic_load(&v.is_running)) {
         vArray elements = vUIElementGetAllRegisteredElements();
-        u32 element_count = vUIElementGetRegisteredElementCount();
         u64 start_ms = vTimerGetMs(render_timer);
         vRendererBeginFrame(v.renderer);
        
@@ -75,27 +71,10 @@ static void* vRendererThread(void* arg) {
 
         next_rcmd_buf = (next_rcmd_buf + 1) % 2;
 
-        for(u32 i = 0; i < element_count; ++i) {
-            vTexture texture = NULL;
-            vUIElement *element = *(vUIElement**)vArrayGet(elements, i);
-            
-            if(element->is_visible && element->use_texture) {
-                if(element->is_pressed && element->pressed_texture) 
-                    texture = element->pressed_texture;
-                else if(element->is_hovered && element->hover_texture)
-                    texture = element->hover_texture;
-                else if(element->normal_texture)
-                    texture = element->normal_texture;
-            }
-            if(texture) {
-                vRendererDrawTexture(
-                    v.renderer,
-                    texture,
-                    (vVec2){ (f32)element->x, (f32)element->y },
-                    (vVec2){ (f32)element->width, (f32)element->height }
-                );
-            }
-        }
+        vRendererDrawUI(
+            v.renderer,
+            elements
+        );
 
         vRendererEndFrame(v.renderer);
 
@@ -107,13 +86,10 @@ static void* vRendererThread(void* arg) {
         }
     }
 
-    vLog("[RENDERER THREAD] Thread finished\n"); 
-    
     return NULL;
 }
 
 static void vDispatchEvents() {
-    vLog("[ENGINE] Dispatching events\n");
     vEventQueuePublish((vEvent){ .type = V_EVENT_ENGINE_TICK });
     vEventQueueDispatch();
 }
@@ -164,8 +140,6 @@ static void vUIEventDispatch(const vEvent *ev) {
 }
 
 static void* vMainThread(void* arg) {
-    vLog("[MAIN THREAD] Started\n");
-
     vThreadSyncBarrierConfirm(v.init_barrier, v.main_thread);
 
     vTimer main_timer = vTimerCreate(true);
@@ -187,24 +161,19 @@ static void* vMainThread(void* arg) {
         }
     }
 
-    vLog("[MAIN THREAD] Thread finished\n");
     return NULL;
 }
 
 static void vOnWindowClosed(const vEvent *ev) {
-    vLog("[ENGINE] Window is closed\n");
     atomic_store(&v.is_running, false);
 }
 
 void vInit(vString title, u32 w, u32 h) {
-    vLog("[ENGINE] Initializing (%ux%u)\n", w, h);
     setlocale(LC_ALL, "");
 
     vEventQueueInit();
-    vLog("[ENGINE] Event queue initialized\n");
     
     vUIElementRegistryInit();
-    vLog("[ENGINE] UI registry initialized\n");
 
     vEventQueueSubscribe(V_EVENT_WINDOW_CLOSED, vOnWindowClosed);
     
@@ -217,7 +186,6 @@ void vInit(vString title, u32 w, u32 h) {
 
     texture_data1 = vTextureLoad("assets/textures/test.png");
     texture_data2 = vTextureLoad("assets/textures/test2.png");
-    vLog("[ENGINE] Startup texture data loaded: first=%p second=%p\n", texture_data1, texture_data2);
 
     button = vUIElementCreate(
         100, 100, 100, 50,
@@ -229,18 +197,15 @@ void vInit(vString title, u32 w, u32 h) {
     );
     
     vUIElementRegister(button);
-    vLog("[ENGINE] Startup UI element registered: %p\n", button);
 
     v.window = vWindowCreate(title, w, h);
     if (!v.window) {
         vLog("[ENGINE] Window creation failed\n");
         return;
     }
-    vLog("[ENGINE] Window created: %p\n", v.window);
 
     v.renderer_thread = vThreadCreate(vRendererThread, NULL);
     v.main_thread = vThreadCreate(vMainThread, NULL);
-    vLog("[ENGINE] Worker threads created: main=%p renderer=%p\n", v.main_thread, v.renderer_thread);
 
     v.init_barrier = vThreadSyncBarrierCreate();
     vThreadSyncBarrierAdd(v.init_barrier, v.renderer_thread);
@@ -249,15 +214,13 @@ void vInit(vString title, u32 w, u32 h) {
 }
 
 void vRun(void (*application_init)(void), void (*application_run)(void)) {
-    vLog("[ENGINE] Starting run loop\n");
     atomic_store(&v.is_running, true);
-    
+
     v.application_run = application_run;
     v.application_init = application_init;
 
     vThreadStart(v.renderer_thread);
     vThreadStart(v.main_thread);
-    vLog("[ENGINE] Worker threads started\n");
 
     while(atomic_load(&v.is_running)) {
         vWindowPollEvents();
@@ -266,8 +229,6 @@ void vRun(void (*application_init)(void), void (*application_run)(void)) {
     vThreadJoin(v.renderer_thread);
     vThreadJoin(v.main_thread);
 
-    vLog("[ENGINE] Run loop stopped; worker threads joined\n");
-    vLog("[WINDOW THREAD] Thread finished\n");
 }
 
 void vShutdown() {
@@ -283,10 +244,9 @@ vRenderAPI* vGetRenderAPI() {
 }
 
 void vAddEventListener(vEventType type, void (*callback)(const vEvent*)) {
-    vLog("[ENGINE] Adding listener %p for event %d\n", callback, type);
     vEventQueueSubscribe(type, callback);
 }
 
 void vRemoveEventListener(vEventType type, void (*callback)(const vEvent*)) {
-    // vEventQueueUnsubscribe(type, callback);
+    vEventQueueUnsubscribe(type, callback);
 }

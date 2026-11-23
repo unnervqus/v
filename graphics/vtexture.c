@@ -51,8 +51,6 @@ vTextureData vTextureLoad(const char* path) {
         return NULL;
     }
 
-    vLog("[TEXTURE] Loading '%s'\n", path);
-
     int width = 0;
     int height = 0;
     int channels = 0;
@@ -80,7 +78,6 @@ vTextureData vTextureLoad(const char* path) {
     texture_data->width = (i32)width;
     texture_data->height = (i32)height;
 
-    vLog("[TEXTURE] Loaded '%s' (%dx%d, %d channel(s))\n", path, width, height, channels);
     return texture_data;
 }
 
@@ -156,7 +153,6 @@ vTexture vTextureCreateEx(
 
     stbi_image_free(texture_data->pixels);
 
-    vLog("[TEXTURE] Created OpenGL texture id=%u (%ux%u)\n", texture->id, texture->width, texture->height);
     return texture;
 }
 

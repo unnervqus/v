@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/varray.h"
 #include "graphics/vrender_cmd_buffer.h"
 #include "platform/vwindow.h"
 #include "graphics/vtexture.h"
@@ -30,4 +31,9 @@ void vRendererDrawTextureRegion(
 void vRendererResize(
     vRenderer renderer,
     u32 width, u32 height
+);
+
+void vRendererDrawUI(
+    vRenderer renderer,
+    vArray elements
 );
