@@ -1,4 +1,3 @@
-#include "core/threading/vmutex.h"
 #include "core/threading/vsemaphore.h"
 #include "graphics/vrender_cmd_buffer.h"
 #include "graphics/vrender_api.h"
@@ -60,13 +59,74 @@ void vRCMDCreateTexture(vTexture *texture_out, vTextureData texture_data) {
         ], command);
 }
 
+static void vRCMDCreateFont(vFont* font_out, vFontData font_data) {
+    vRenderCommand command = {
+        .type = V_RCMD_CREATE_FONT,
+        .as.create_font = {
+            .font = font_out,
+            .font_data = font_data
+        }
+    };
+
+    vRenderCommandBufferPush(
+        v_render.data->rcmd_buf[
+            v_render.data->active_cmd_buf
+        ], command);
+}
+
+static void vRCMDDrawFont(vFont font, vVec2 pos) {
+    vRenderCommand command = {
+        .type = V_RCMD_DRAW_FONT,
+        .as.draw_font = {
+            .font = font,
+            .pos = pos
+        }
+    };
+
+    vRenderCommandBufferPush(
+        v_render.data->rcmd_buf[
+            v_render.data->active_cmd_buf
+        ], command);
+}
+
+static void vRCMDDrawText(vFont font, vString text, vVec2 pos, vRenderAttributes *attribs) {
+    vRenderCommand command = {
+        .type = V_RCMD_DRAW_TEXT,
+        .as.draw_text = {
+            .font = font,
+            .pos = pos,
+            .text = text,
+            .attribs = attribs
+        }
+    };
+
+    vRenderCommandBufferPush(
+        v_render.data->rcmd_buf[
+            v_render.data->active_cmd_buf
+        ], command);
+}
+
+static void vRCMDSetViewport(vRectF32 viewport) {
+    vRenderCommand command = {
+        .type = V_RCMD_SET_VIEWPORT,
+        .as.set_viewport = {
+            .viewport = viewport
+        }
+    };
+
+    vRenderCommandBufferPush(
+        v_render.data->rcmd_buf[
+            v_render.data->active_cmd_buf
+        ], command);
+}
+
 static void vRCMDExecute() {
     u32 submitted = v_render.data->active_cmd_buf;
     
     vSemaphorePost(v_render.data->rcmd_buf[submitted]->commands_executing);
 
     v_render.data->active_cmd_buf = (submitted + 1) % 2;
-    
+
     vSemaphoreWait(v_render.data->rcmd_buf[v_render.data->active_cmd_buf]->commands_available);
 }
 
@@ -106,17 +166,20 @@ void vRenderAPIInit(vRenderer renderer) {
     v_render.clear = vRCMDClearScreen;
     v_render.execute = vRCMDExecute;
     
-    // render->text = vRCMDDrawText;
     // render->point = vRCMDDrawPoint;
     // render->text = vRCMDDrawText;
     // render->primitive = vRCMDDrawPrimitive;
-    v_render.draw.texture = vRCMDDrawTexture;
+    v_render.create.font = vRCMDCreateFont;
     v_render.create.texture = vRCMDCreateTexture;
     
+    v_render.draw.texture = vRCMDDrawTexture;
+    v_render.draw.font = vRCMDDrawFont;
+    v_render.draw.text = vRCMDDrawText;
+
     // render->set_blend_mode = vRCMDSetBlendMode;
     // render->set_layer = vRCMDSetLayer;
     // render->set_scissor = vRCMDSetScissors;
-    // render->set_viewport = vRCMDSetViewport;
+    v_render.set.viewport = vRCMDSetViewport;
     v_render.is_ready = true;
 }
 

@@ -1,7 +1,6 @@
 #include "core/varray.h"
-#include "core/vlogging.h"
 #include "core/vmemory.h"
-#include "vtypes.h"
+#include "core/vtypes.h"
 
 #define V_ARRAY_ADDRESS(array, index) ((array)->data + (index) * (array)->element_size)
 

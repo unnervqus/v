@@ -1,8 +1,7 @@
 #include "core/vring_buffer.h"
-
 #include "core/varray.h"
 #include "core/vmemory.h"
-#include "vtypes.h"
+#include "core/vtypes.h"
 
 struct vRingBuffer {
     u32 head;

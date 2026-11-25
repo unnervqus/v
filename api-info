@@ -1,0 +1,28 @@
+Create resource:
+
+vAnimationCreate()
+vTextureLoad()
+vFontLoad()
+vAudioPlayMusic()
+
+vAddEventListener()
+vRemoveEventListener() 
+
+Render API:
+
+    render.create
+        texture()
+        font()
+        animation()        
+
+    render.draw
+        animation()
+        texture()
+        font()
+        text()
+
+    render.set
+        viewport()
+
+    render.execute()
+    render.clear()

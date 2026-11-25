@@ -4,6 +4,8 @@
 #include "core/vmemory.h"
 #include "core/vlogging.h"
 
+#include <pthread.h>
+
 struct vThreadSyncBarrier {
     vArray threads;
     u32 thread_count;

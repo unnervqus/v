@@ -1,5 +1,13 @@
-v 0.2.1
+v0.3.0
+    - Added simple audio play support (once track at a time)
+    - Added animations with settable frequency
+    - Now engine compiles as library and has public headers for API
+    - All internal functions/structs declarations moved to internal headers
+    - Some small changes
+
+
+v0.2.1
     - Added vRemoveListener function for application level
-    - Now application cannot subscribe multiple time one handler on same event type
+    - Now application cannot subscribe multiple times one handler on same event type
     - vRendererDrawUI:
         - Moved UI drawing logic from v.c to vrenderer.c

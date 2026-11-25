@@ -1,7 +1,5 @@
 #pragma once
 
-#include "core/vmemory.h"
-
 #include <pthread.h>
 
 typedef struct vMutex {

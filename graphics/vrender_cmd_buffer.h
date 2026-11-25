@@ -3,6 +3,7 @@
 #include "graphics/vrender_api.h"
 #include "core/vring_buffer.h"
 #include "graphics/vtexture.h"
+#include "graphics/vfont.h"
 #include "math/vmath.h"
 
 #include <core/threading/vsemaphore.h>
@@ -11,20 +12,22 @@
 
 typedef enum vRenderCommandType {
     V_RCMD_CREATE_TEXTURE,
+    V_RCMD_CREATE_FONT,
 
     V_RCMD_CLEAR_SCREEN,
     V_RCMD_DRAW_TEXT,
-    V_RCMD_DRAW_POINT,
-    V_RCMD_DRAW_PRIMITIVE,
+    // V_RCMD_DRAW_POINT,
+    // V_RCMD_DRAW_PRIMITIVE,
     V_RCMD_DRAW_TEXTURE,
+    V_RCMD_DRAW_FONT,
 
-    V_RCMD_DRAW_PRINT_SCENE,
-    V_RCMD_DRAW_SCENE,
+    // V_RCMD_DRAW_PRINT_SCENE,
+    // V_RCMD_DRAW_SCENE,
 
-    V_RCMD_SET_LAYER,
-    V_RCMD_SET_SCISSORS,
+    // V_RCMD_SET_LAYER,
+    // V_RCMD_SET_SCISSORS,
     V_RCMD_SET_VIEWPORT,
-    V_RCMD_SET_BLEND_MODE,
+    // V_RCMD_SET_BLEND_MODE,
     V_RCMD_EXECUTE,
 
     V_RCMD_COUNT
@@ -44,10 +47,31 @@ typedef struct vRenderCommand {
         } create_texture;
 
         struct {
+            vFontData font_data;
+            vFont* font;
+        } create_font;
+
+        struct {
             vTexture texture;
             vVec2 pos;
             vRenderAttributes* attrs;
         } draw_texture;
+
+        struct {
+            vFont font;
+            vVec2 pos;
+        } draw_font;
+
+        struct {
+            vFont font;
+            vVec2 pos;
+            vString text;
+            vRenderAttributes* attribs;
+        } draw_text;
+
+        struct {
+            vRectF32 viewport;
+        } set_viewport;
 
     } as;
 

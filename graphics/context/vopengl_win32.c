@@ -137,8 +137,8 @@ vOpenGLContext vOpenGLContextCreate(vWindow window) {
     vLog("[RENDERER THREAD] [OpenGL] OpenGL Version: %s\n", glGetString(GL_VERSION));
     vLog("[RENDERER THREAD] [OpenGL] Renderer: %s\n", glGetString(GL_RENDERER));
 
-
-    vOpenGLContext gl = vMalloc(sizeof(struct vOpenGLContext));
+    vOpenGLContext gl = NULL;
+    gl = vMalloc(sizeof(struct vOpenGLContext));
         gl->hctx = hctx;
         gl->hwnd = hwnd;
         gl->hdc = hdc;
@@ -147,8 +147,10 @@ vOpenGLContext vOpenGLContextCreate(vWindow window) {
     return gl;
 
 fail:
-    vOpenGLContextCleanup(gl);
-    if(gl) vFree(gl);
+    if(gl) {
+        vOpenGLContextCleanup(gl);
+        vFree(gl);
+    }
     return NULL;  
 }
 

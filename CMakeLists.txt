@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(v
-    VERSION 0.1.0
+    VERSION 0.2.1
     LANGUAGES C
 )
 
@@ -10,9 +10,6 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-# --------------------------------------------------
-# Sources
-# --------------------------------------------------
  
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/core/*.c"
@@ -21,6 +18,7 @@ file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/graphics/context/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/platform/*.c"
     "${CMAKE_CURRENT_SOURCE_DIR}/math/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/audio/*.c"
 )
 
 add_executable(v
@@ -28,30 +26,15 @@ add_executable(v
     ${ENGINE_SOURCES}
 )
 
-# --------------------------------------------------
-# Include directories
-# --------------------------------------------------
-
 target_include_directories(v PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/"
 )
 
-# --------------------------------------------------
-# OpenGL
-# --------------------------------------------------
-
+# Dependencies
 find_package(OpenGL REQUIRED)
-
-# --------------------------------------------------
-# GLEW
-# --------------------------------------------------
-
 find_package(GLEW REQUIRED)
-
-# --------------------------------------------------
-# Linking
-# --------------------------------------------------
 
 target_link_libraries(v PRIVATE
     OpenGL::GL
@@ -59,10 +42,6 @@ target_link_libraries(v PRIVATE
     user32
     gdi32
 )
-
-# --------------------------------------------------
-# Copy GLEW DLL
-# --------------------------------------------------
 
 find_file(GLEW_DLL
     NAMES glew32.dll
@@ -74,17 +53,13 @@ if(GLEW_DLL)
     add_custom_command(TARGET v POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${GLEW_DLL}"
-            "$<TARGET_FILE_DIR:veltrion>"
+            "$<TARGET_FILE_DIR:v>"
     )
 endif()
 
-# --------------------------------------------------
-# Warnings
-# --------------------------------------------------
-
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
     target_compile_options(v PRIVATE
-        -g
+        -Wall
         -Wpedantic
     )
 endif()

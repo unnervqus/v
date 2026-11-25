@@ -1,17 +1,22 @@
-#include "core/v.h"
-#include "core/threading/vthread.h"
+#include "core/vengine.h"
 #include "core/vlogging.h"
 #include "core/vtimer.h"
 #include "core/vevent_queue.h"
 #include "core/vutils.h"
-#include "core/threading/vmutex.h"
+
+#include "core/threading/vthread.h"
+#include "core/threading/vthread_sync_barrier.h"
 
 #include "graphics/vrenderer.h"
-#include "graphics/vrender_api.h"
+#include "graphics/vanimation.h"
+#include "graphics/vrender_api_internal.h"
 
-#include "threading/vthread_sync_barrier.h"
+#include "math/vmath.h"
+
 #include "ui/vui_element.h"
 #include "ui/_vui_element.h"
+
+#include "audio/vaudio.h"
 
 #include "platform/vwindow.h"
 
@@ -38,26 +43,27 @@ V v = {
     .speed = 50,
 };
 
-vUIElement* button;
-vTextureData texture_data1;
-vTextureData texture_data2;
+vAnimation anim0;
+    
 
-static void* vRendererThread(void* arg) {
+static void* vRendererThread(void*) {
     v.renderer = vRendererCreate(v.window);
 
     vRenderAPIInit(v.renderer);
     v.application_init();
+    anim0 = vAnimationCreate(
+        "assets/textures/atlas0.png",
+        100, 100,
+        10, 8,
+        2, 5
+    );
 
     vTimer render_timer = vTimerCreate(true);
 
     vThreadSyncBarrierConfirm(v.init_barrier, v.renderer_thread);
 
-    vTexture texture1 = vTextureCreate(texture_data1);
-    vTexture texture2 = vTextureCreate(texture_data2);
-    
-    vUIElementSetTexture(button, V_UIE_TEXTURE_PRESSED, texture1);
-    vUIElementSetTexture(button, V_UIE_TEXTURE_HOVER, texture2);
     u32 next_rcmd_buf = 0;
+    u64 elapsed_ms = 0;
 
     while(atomic_load(&v.is_running)) {
         vArray elements = vUIElementGetAllRegisteredElements();
@@ -71,6 +77,16 @@ static void* vRendererThread(void* arg) {
 
         next_rcmd_buf = (next_rcmd_buf + 1) % 2;
 
+        vVec2 anim0_frame_pos = vAnimationNextFrame(anim0, elapsed_ms);
+
+        vRendererDrawTextureRegion(v.renderer, 
+            vAnimationGetTexture(anim0),
+            anim0_frame_pos, 
+            vAnimationGetFrameSize(anim0),
+            (vVec2){0.0f, 0.0f},
+            (vVec2){100.0f, 100.0f}
+        );
+
         vRendererDrawUI(
             v.renderer,
             elements
@@ -80,7 +96,7 @@ static void* vRendererThread(void* arg) {
 
         u64 end_ms = vTimerGetMs(render_timer);
 
-        u64 elapsed_ms = end_ms - start_ms;
+        elapsed_ms = end_ms - start_ms;
         if(elapsed_ms < 1'000 / v.target_fps) {
             vThreadSleep(1'000 / v.target_fps - elapsed_ms);
         }
@@ -168,11 +184,23 @@ static void vOnWindowClosed(const vEvent *ev) {
     atomic_store(&v.is_running, false);
 }
 
+static void vOnWindowResized(const vEvent *ev) {
+    if(v_render.is_ready) {
+        v_render.set.viewport((vRectF32){
+            0, 0,
+            ev->as.window_resized.w, 
+            ev->as.window_resized.h
+        });
+    }
+}
+
 void vInit(vString title, u32 w, u32 h) {
     setlocale(LC_ALL, "");
 
     vEventQueueInit();
     
+    vAudioInit();
+
     vUIElementRegistryInit();
 
     vEventQueueSubscribe(V_EVENT_WINDOW_CLOSED, vOnWindowClosed);
@@ -184,19 +212,7 @@ void vInit(vString title, u32 w, u32 h) {
     vEventQueueSubscribe(V_EVENT_KEY_PRESSED, vUIEventDispatch);
     vEventQueueSubscribe(V_EVENT_KEY_RELEASED, vUIEventDispatch);
 
-    texture_data1 = vTextureLoad("assets/textures/test.png");
-    texture_data2 = vTextureLoad("assets/textures/test2.png");
-
-    button = vUIElementCreate(
-        100, 100, 100, 50,
-        true,
-        NULL,
-        NULL,
-        NULL,
-        NULL
-    );
-    
-    vUIElementRegister(button);
+    vEventQueueSubscribe(V_EVENT_WINDOW_RESIZED, vOnWindowResized);
 
     v.window = vWindowCreate(title, w, h);
     if (!v.window) {

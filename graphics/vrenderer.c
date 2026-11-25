@@ -1,18 +1,21 @@
-#include "core/vring_buffer.h"
 #include "graphics/vrender_cmd_buffer.h"
 #include "graphics/context/vopengl.h"
 #include "graphics/vrenderer.h"
 #include "graphics/vshader.h"
-#include "graphics/vtexture.h"
+#include "graphics/vtexture_internal.h"
 #include "graphics/vvertex.h"
-#include "platform/vwindow.h"
+#include "graphics/vfont_internal.h"
+
+#include "core/vring_buffer.h"
 #include "core/vmemory.h"
 #include "core/vlogging.h"
-#include "vrenderer.h"
+#include "core/varray.h"
+
+#include "ui/vui_element.h"
+
+#include "platform/vwindow.h"
 
 #include <GL/glew.h>
-#include <core/varray.h>
-#include <ui/vui_element.h>
 
 struct vRenderer {
     GLuint vao;
@@ -112,7 +115,7 @@ vRenderer vRendererCreate(vWindow window) {
 
     glBufferData(
         GL_ARRAY_BUFFER,
-        sizeof(vVertex2D) * 4,
+        sizeof(vVertex2D) * 6,
         NULL,
         GL_DYNAMIC_DRAW
     );
@@ -237,6 +240,34 @@ void vRendererExecuteCommands(vRenderer renderer, vRenderCommandBuffer* rcmd_buf
                 }
             );
             break;
+        case V_RCMD_CREATE_FONT: {
+            *rcmd->as.create_font.font = vFontCreate(rcmd->as.create_font.font_data);
+            break;
+        }
+        case V_RCMD_DRAW_FONT: {
+            vRendererDrawFont(
+                renderer,
+                rcmd->as.draw_font.font,
+                rcmd->as.draw_font.pos
+            );
+            break;
+        }
+        case V_RCMD_DRAW_TEXT: {
+            vRendererDrawText(
+                renderer,
+                rcmd->as.draw_text.font,
+                rcmd->as.draw_text.text,
+                rcmd->as.draw_text.pos
+            );
+            break;
+        }
+        case V_RCMD_SET_VIEWPORT: {
+            vRendererResize(
+                renderer, 
+                rcmd->as.set_viewport.viewport.w, 
+                rcmd->as.set_viewport.viewport.h);
+            break;
+        }
         default:
             break;
         }
@@ -279,31 +310,26 @@ void vRendererDrawTextureRegion(
 
     f32 texture_width = (f32)vTextureGetWidth(texture);
     f32 texture_height = (f32)vTextureGetHeight(texture);
-
-    vVertex2D vertices[4] = {
-        {
-            { position_dst.x, position_dst.y },
-            { position_src.x / texture_width, position_src.y / texture_height },
-            { 1.0f, 1.0f, 1.0f, 1.0f }
-        },
-        {
-            { position_dst.x + size_dst.x, position_dst.y },
-            { (position_src.x + size_src.x) / texture_width, position_src.y / texture_height },
-            { 1.0f, 1.0f, 1.0f, 1.0f }
-        },
-        {
-            { position_dst.x + size_dst.x, position_dst.y + size_dst.y },
-            { (position_src.x + size_src.x) / texture_width, (position_src.y + size_src.y) / texture_height },
-            { 1.0f, 1.0f, 1.0f, 1.0f }
-        },
-        {
-            { position_dst.x, position_dst.y + size_dst.y },
-            { position_src.x / texture_width, (position_src.y + size_src.y) / texture_height },
-            { 1.0f, 1.0f, 1.0f, 1.0f }
-        }
-    };
+    
+    vVec4 white = { 1.0f, 1.0f, 1.0f, 1.0f };
+    vQuad2D quad = vQuad2DCreate(
+        position_dst.x, position_dst.y,
+        size_dst.x, size_dst.y,
+        (vVec2){ 
+            position_src.x / texture_width, 
+            position_src.y / texture_height },
+        (vVec2){
+            (position_src.x + size_src.x) / texture_width, 
+            (position_src.y + size_src.y) / texture_height },
+        (vVec4[]){ 
+            white, white, 
+            white, white }
+    );
 
     vShaderUse(renderer->shader);
+
+    u32 loc = vShaderGetUniformLocation(renderer->shader, "uIsFont");
+    glUniform1i(loc, GL_FALSE);
 
     vTextureBind(texture, 0);
 
@@ -314,8 +340,8 @@ void vRendererDrawTextureRegion(
     glBufferSubData(
         GL_ARRAY_BUFFER,
         0,
-        sizeof(vertices),
-        vertices
+        sizeof(quad),
+        &quad
     );
 
     glDrawElements(
@@ -324,6 +350,122 @@ void vRendererDrawTextureRegion(
         GL_UNSIGNED_INT,
         0
     );
+
+    glBindVertexArray(0);
+    vTextureUnbind();
+}
+
+void vRendererDrawFont(
+    vRenderer renderer, vFont font,
+    vVec2 position
+) {
+    if (!renderer || !font)
+        return;
+
+    f32 w = vFontGetAtlasWidth(font);
+    f32 h = vFontGetAtlasHeight(font);
+
+    vVec4 white = {1.0f, 1.0f, 1.0f, 1.0f};
+    
+    vQuad2D quad = vQuad2DCreate(
+        position.x, position.y, 
+        w, h, 
+        (vVec2){0.0f, 0.0f},
+        (vVec2){1.0f, 1.0f},
+        (vVec4[]){ 
+            white, white, 
+            white, white }
+    );   
+
+    vShaderUse(renderer->shader);
+
+    u32 loc = vShaderGetUniformLocation(renderer->shader, "uIsFont");
+    glUniform1i(loc, GL_TRUE);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, vFontGetID(font));
+
+    glBindVertexArray(renderer->vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
+
+    glBufferSubData(
+        GL_ARRAY_BUFFER,
+        0,
+        sizeof(quad),
+        &quad
+    );
+
+    glDrawElements(
+        GL_TRIANGLES,
+        6,
+        GL_UNSIGNED_INT,
+        0
+    );
+
+    glBindVertexArray(0);
+    vTextureUnbind();
+}
+
+#define V_MAX_TEXT_VERTICES 600
+void vRendererDrawText(
+    vRenderer renderer, vFont font,
+    vString text, vVec2 position
+) {
+    if(!renderer || !font)
+        return;
+
+    vShaderUse(renderer->shader);
+
+    u32 loc = vShaderGetUniformLocation(renderer->shader, "uIsFont");
+    glUniform1i(loc, GL_TRUE);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, vFontGetID(font));
+
+    glBindVertexArray(renderer->vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo);
+
+    const char* symbols = vStringGetData(text);
+    u32 symbol_count = vStringGetSize(text);
+
+    f32 pos_x = position.x;
+    f32 pos_y = position.y;
+
+    vVec4 white = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    f32 offset_x = 0;
+    f32 padding_x = 2;
+
+    for(u32 i = 0; i < symbol_count; i++) {
+        if(symbols[i] == ' ') { offset_x += 18; continue; }
+        vGlyph* glyph = vFontGetGlyph(font, symbols[i]);
+        vQuad2D quad = vQuad2DCreate(
+            pos_x + offset_x, pos_y - glyph->bearingY,
+            glyph->w, glyph->h,
+            (vVec2){ glyph->u0, glyph->v0 },
+            (vVec2){ glyph->u1, glyph->v1 },
+            (vVec4[]){ 
+                white, white, 
+                white, white }
+            );
+
+        glBufferSubData(
+        GL_ARRAY_BUFFER,
+        0,
+        sizeof(quad),
+        &quad
+        );
+
+        glDrawElements(
+            GL_TRIANGLES,
+            6,
+            GL_UNSIGNED_INT,
+            0
+        );
+        offset_x += glyph->w + padding_x;
+    }
 
     glBindVertexArray(0);
     vTextureUnbind();

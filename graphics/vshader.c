@@ -150,6 +150,7 @@ vShader vShaderCreate(
     }
 
     shader->id = program;
+
     vLog("[SHADER] Program ready (id=%u)\n", program);
     return shader;
 }

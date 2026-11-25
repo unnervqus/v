@@ -1,4 +1,4 @@
-#include "graphics/vtexture.h"
+#include "graphics/vtexture_internal.h"
 #include "core/vmemory.h"
 #include "core/vlogging.h"
 
