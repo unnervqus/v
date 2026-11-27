@@ -54,7 +54,7 @@ typedef struct vRenderCommand {
         struct {
             vTexture texture;
             vVec2 pos;
-            vRenderAttributes* attrs;
+            vRenderAttributes attrs;
         } draw_texture;
 
         struct {
@@ -66,7 +66,7 @@ typedef struct vRenderCommand {
             vFont font;
             vVec2 pos;
             vString text;
-            vRenderAttributes* attribs;
+            vRenderAttributes attrs;
         } draw_text;
 
         struct {
@@ -75,6 +75,7 @@ typedef struct vRenderCommand {
 
     } as;
 
+    
 } vRenderCommand;
 
 typedef struct vRenderCommandBuffer {

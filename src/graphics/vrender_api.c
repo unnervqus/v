@@ -28,7 +28,7 @@ void vRCMDClearScreen(vColor color) {
         ], command);
 }
 
-void vRCMDDrawTexture(vTexture texture, vVec2 pos, vRenderAttributes* attrs) {
+void vRCMDDrawTexture(vTexture texture, vVec2 pos, vRenderAttributes attrs) {
     vRenderCommand command = {
         .type = V_RCMD_DRAW_TEXTURE,
         .as.draw_texture = {
@@ -89,14 +89,14 @@ static void vRCMDDrawFont(vFont font, vVec2 pos) {
         ], command);
 }
 
-static void vRCMDDrawText(vFont font, vString text, vVec2 pos, vRenderAttributes *attribs) {
+static void vRCMDDrawText(vFont font, vString text, vVec2 pos, vRenderAttributes attrs) {
     vRenderCommand command = {
         .type = V_RCMD_DRAW_TEXT,
         .as.draw_text = {
             .font = font,
             .pos = pos,
             .text = text,
-            .attribs = attribs
+            .attrs = attrs
         }
     };
 

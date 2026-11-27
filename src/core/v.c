@@ -8,7 +8,6 @@
 #include "core/threading/vthread_sync_barrier.h"
 
 #include "graphics/vrenderer.h"
-#include "graphics/vanimation.h"
 #include "graphics/vrender_api_internal.h"
 
 #include "math/vmath.h"
@@ -43,25 +42,15 @@ V v = {
     .speed = 50,
 };
 
-vAnimation anim0;
-    
-
 static void* vRendererThread(void*) {
     v.renderer = vRendererCreate(v.window);
-
     vRenderAPIInit(v.renderer);
+    
     v.application_init();
-    anim0 = vAnimationCreate(
-        "assets/textures/atlas0.png",
-        100, 100,
-        10, 8,
-        2, 5
-    );
-
-    vTimer render_timer = vTimerCreate(true);
 
     vThreadSyncBarrierConfirm(v.init_barrier, v.renderer_thread);
 
+    vTimer render_timer = vTimerCreate(true);
     u32 next_rcmd_buf = 0;
     u64 elapsed_ms = 0;
 
@@ -76,16 +65,6 @@ static void* vRendererThread(void*) {
         );
 
         next_rcmd_buf = (next_rcmd_buf + 1) % 2;
-
-        vVec2 anim0_frame_pos = vAnimationNextFrame(anim0, elapsed_ms);
-
-        vRendererDrawTextureRegion(v.renderer, 
-            vAnimationGetTexture(anim0),
-            anim0_frame_pos, 
-            vAnimationGetFrameSize(anim0),
-            (vVec2){0.0f, 0.0f},
-            (vVec2){100.0f, 100.0f}
-        );
 
         vRendererDrawUI(
             v.renderer,
@@ -165,9 +144,7 @@ static void* vMainThread(void* arg) {
         
         vDispatchEvents();
         // vUpdateUI(); 
-        if(v_render.is_ready) {
-            v.application_run();
-        }
+        v.application_run();
 
         u64 end_ms = vTimerGetMs(main_timer);
         u64 elapsed_ms = end_ms - start_ms;
@@ -227,6 +204,8 @@ void vInit(vString title, u32 w, u32 h) {
     vThreadSyncBarrierAdd(v.init_barrier, v.renderer_thread);
     vThreadSyncBarrierAdd(v.init_barrier, v.main_thread);
     vThreadSyncBarrierStart(v.init_barrier);
+
+    
 }
 
 void vRun(void (*application_init)(void), void (*application_run)(void)) {

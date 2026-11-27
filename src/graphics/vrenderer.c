@@ -1,7 +1,9 @@
+#include "graphics/vrender_api.h"
 #include "graphics/vrender_cmd_buffer.h"
 #include "graphics/context/vopengl.h"
 #include "graphics/vrenderer.h"
 #include "graphics/vshader.h"
+#include "graphics/vtexture.h"
 #include "graphics/vtexture_internal.h"
 #include "graphics/vvertex.h"
 #include "graphics/vfont_internal.h"
@@ -221,7 +223,7 @@ void vRendererExecuteCommands(vRenderer renderer, vRenderCommandBuffer* rcmd_buf
     
     for (u32 i = 0; i < commands_to_execute; i++) {
         vRenderCommand* rcmd = vRenderCommandBufferPop(rcmd_buf);
-
+        
         switch (rcmd->type) {
         case V_RCMD_CLEAR_SCREEN:
             vRendererClearScreen(renderer, rcmd->as.clear_screen.color);
@@ -229,17 +231,35 @@ void vRendererExecuteCommands(vRenderer renderer, vRenderCommandBuffer* rcmd_buf
         case V_RCMD_CREATE_TEXTURE:
             *rcmd->as.create_texture.texture = vTextureCreate(rcmd->as.create_texture.texture_data);
             break;
-        case V_RCMD_DRAW_TEXTURE:
-            vRendererDrawTexture(
-                renderer, 
-                rcmd->as.draw_texture.texture, 
-                rcmd->as.draw_texture.pos, 
-                (vVec2){
-                    .x = vTextureGetWidth(rcmd->as.draw_texture.texture), 
-                    .y = vTextureGetHeight(rcmd->as.draw_texture.texture)
-                }
-            );
+        case V_RCMD_DRAW_TEXTURE: {
+            if(rcmd->as.draw_texture.attrs.active) {
+                vRendererDrawTextureRegion(
+                    renderer, 
+                    rcmd->as.draw_texture.texture, 
+                    rcmd->as.draw_texture.attrs.texture.texture_coords,
+                    rcmd->as.draw_texture.attrs.texture.texture_size,
+                    rcmd->as.draw_texture.pos,
+                    rcmd->as.draw_texture.attrs.active ? (vVec2){
+                        .x = rcmd->as.draw_texture.attrs.texture.dst_size.x,
+                        .y = rcmd->as.draw_texture.attrs.texture.dst_size.y,
+                    } : (vVec2) {
+                        .x = vTextureGetWidth(rcmd->as.draw_texture.texture),
+                        .y = vTextureGetHeight(rcmd->as.draw_texture.texture),
+                    }
+                );
+            } else {
+                vRendererDrawTexture(
+                    renderer, 
+                    rcmd->as.draw_texture.texture, 
+                    rcmd->as.draw_texture.pos, 
+                    (vVec2) {
+                        .x = vTextureGetWidth(rcmd->as.draw_texture.texture),
+                        .y = vTextureGetHeight(rcmd->as.draw_texture.texture)
+                    }
+                );
+            }
             break;
+        }
         case V_RCMD_CREATE_FONT: {
             *rcmd->as.create_font.font = vFontCreate(rcmd->as.create_font.font_data);
             break;

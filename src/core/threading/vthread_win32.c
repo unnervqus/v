@@ -2,8 +2,6 @@
 #include "core/vmemory.h"
 #include "core/vlogging.h"
 
-#include <stdlib.h>
-
 #define WIN32_LEAN_AND_MEAN
 #define UNICODE
 #include <windows.h>
@@ -69,7 +67,7 @@ void vThreadStart(vThread thread) {
     }
 
     thread->started = true;
-    vLog("[THREAD] Started id=%lu handle=%p\n", (unsigned long)thread->id, thread->handle);
+    vLog("[THREAD] Started id=%lu address=%p\n", (unsigned long)thread->id, thread);
 }
 
 void vThreadDestroy(vThread thread) {

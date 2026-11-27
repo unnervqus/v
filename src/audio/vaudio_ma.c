@@ -1,4 +1,5 @@
 #include "audio/vaudio.h"
+#include "core/vlogging.h"
 
 #define MINIAUDIO_IMPLEMENTATION
 #include <miniaudio.h>
@@ -36,7 +37,7 @@ void vAudioPlayMusic(const char* path, bool loop) {
         ma_sound_set_looping(&v_audio.music, MA_TRUE);
     
     ma_sound_start(&v_audio.music);
-
+    vLog("[AUDIO] Playing music from '%s'\n", path);
 }
 
 void vAudioPauseMusic() {

@@ -1,3 +1,6 @@
+v0.3.1
+    - Bug fixes with threads synchonization
+
 v0.3.0
     - Added simple audio play support (once track at a time)
     - Added animations with settable frequency

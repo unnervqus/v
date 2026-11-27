@@ -54,15 +54,12 @@ void vThreadSyncBarrierConfirm(vThreadSyncBarrier tsb, vThread thread) {
 
     tsb->thread_confirms++;
     
-    // Save local copy of confimation count for each thread
-    u32 thread_confirms = tsb->thread_confirms;
-
     // All threads finished, they can be free now
     if(tsb->thread_confirms == tsb->thread_count) {
         vLog("[THREAD SYNC BARRIER] All threads synced\n", thread);
         pthread_cond_broadcast(&tsb->cond);
     } else {
-        while(thread_confirms != tsb->thread_confirms) {
+        while(tsb->thread_count != tsb->thread_confirms) {
             vLog("[THREAD SYNC BARRIER] Thread %p confirmed\n", thread);
             pthread_cond_wait(&tsb->cond, &tsb->mtx.mutex);
         }

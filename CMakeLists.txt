@@ -12,22 +12,22 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
  
 file(GLOB_RECURSE ENGINE_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/core/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/ui/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/graphics/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/graphics/context/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/platform/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/math/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/audio/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/core/threading/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/graphics/context/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/math/*.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/audio/*.c"
 )
 
-add_executable(v
-    main.c
+add_library(v
     ${ENGINE_SOURCES}
 )
 
 target_include_directories(v PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/external/"
 )

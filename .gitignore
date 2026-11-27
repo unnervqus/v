@@ -5,3 +5,5 @@ glew32.lib
 .vscode
 assets
 .bruh
+.cache
+api-info
